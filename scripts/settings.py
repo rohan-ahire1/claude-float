@@ -118,8 +118,8 @@ def strip(settings):
 def forget(settings, key, name):
     """Claude Code removes these itself; this catches a plugin command that failed."""
     entries = settings.get(key)
-    if isinstance(entries, dict) and name in entries:
-        del entries[name]
+    if isinstance(entries, dict):
+        entries.pop(name, None)
         if not entries:
             del settings[key]
 
