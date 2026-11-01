@@ -7,7 +7,7 @@ import SwiftUI
 let serverPort: UInt16 = 47821
 let floatDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude/float")
 let desktopBundleID = "com.anthropic.claudefordesktop"
-let floatBundleID = "local.rohan.claudefloat"
+let floatBundleID = "io.github.rohan-ahire1.claudefloat"
 
 // MARK: - Model
 

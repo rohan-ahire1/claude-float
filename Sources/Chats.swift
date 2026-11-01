@@ -212,11 +212,13 @@ final class FloatChat {
         var args = ["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose",
                     "--permission-prompt-tool", "stdio"]
         if let resumedFrom { args += ["--resume", resumedFrom] }
-        process.executableURL = URL(fileURLWithPath: claudePath())
+        let claude = claudePath()
+        process.executableURL = URL(fileURLWithPath: claude)
         process.arguments = args
         process.currentDirectoryURL = URL(fileURLWithPath: cwd)
         var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("CLAUDE_CODE_") && $0.key != "CLAUDECODE" }
-        env["PATH"] = loginPath
+        // An npm install of Claude needs the node that sits next to it.
+        env["PATH"] = (claude as NSString).deletingLastPathComponent + ":" + loginPath
         env["__CFBundleIdentifier"] = floatBundleID
         env["CLAUDE_CODE_ENABLE_ASK_USER_QUESTION_TOOL"] = "true"
         process.environment = env
@@ -321,9 +323,13 @@ final class FloatChat {
     }
 }
 
+/// Looks where the installer found Claude first, which also covers version managers like nvm.
 func claudePath() -> String {
-    let candidates = [".local/bin/claude", ".claude/local/claude"].map { home.appendingPathComponent($0).path }
-        + ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
+    let installed = (try? String(contentsOf: floatDir.appendingPathComponent("claude-path"), encoding: .utf8))?
+        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    let onPath = loginPath.split(separator: ":").map { "\($0)/claude" }
+    let candidates = [installed] + [".local/bin/claude", ".claude/local/claude"].map { home.appendingPathComponent($0).path }
+        + ["/opt/homebrew/bin/claude", "/usr/local/bin/claude"] + onPath
     return candidates.first { FileManager.default.isExecutableFile(atPath: $0) } ?? "/usr/local/bin/claude"
 }
 
