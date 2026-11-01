@@ -65,15 +65,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
-    private func loadToken() -> String {
-        try? FileManager.default.createDirectory(at: floatDir, withIntermediateDirectories: true)
+    private func loadToken() throws -> String {
+        let fm = FileManager.default
+        try fm.createDirectory(at: floatDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
         let url = floatDir.appendingPathComponent("token")
         if let saved = try? String(contentsOf: url, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines), !saved.isEmpty {
+            try fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
             return saved
         }
         let token = (UUID().uuidString + UUID().uuidString).replacingOccurrences(of: "-", with: "")
-        try? token.write(to: url, atomically: true, encoding: .utf8)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        // Created private, so the token is never readable by other users, even for a moment.
+        guard fm.createFile(atPath: url.path, contents: Data(token.utf8), attributes: [.posixPermissions: 0o600]) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
         return token
     }
 

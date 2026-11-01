@@ -206,9 +206,12 @@ struct PermissionCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Wants to use \(tool)").font(.system(size: 12, weight: .medium))
             if !summary.isEmpty {
-                Text(summary).font(.system(size: 11, design: .monospaced)).lineLimit(6).textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(8)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
+                ScrollView {
+                    Text(summary).font(.system(size: 11, design: .monospaced)).textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading).padding(8)
+                }
+                .frame(maxHeight: 160).fixedSize(horizontal: false, vertical: true)
+                .background(RoundedRectangle(cornerRadius: 6).fill(Color.primary.opacity(0.06)))
             }
             HStack(spacing: 6) {
                 Button("Allow") { store.allow(id, always: false) }.buttonStyle(.borderedProminent)

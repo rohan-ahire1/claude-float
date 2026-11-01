@@ -346,11 +346,18 @@ func keyField(_ input: [String: Any]) -> String? {
     return nil
 }
 
+/// What a permission prompt shows. You approve what you can see, so this keeps every field, not just the key one.
 func summarize(_ tool: String, _ input: [String: Any]) -> String {
-    if let value = keyField(input) { return value }
-    guard !input.isEmpty, let data = try? JSONSerialization.data(withJSONObject: input, options: [.sortedKeys]),
-          let text = String(data: data, encoding: .utf8) else { return "" }
-    return text.count > 400 ? String(text.prefix(400)) + "…" : text
+    let text: String
+    if tool == "Bash" || input.count == 1, let value = keyField(input) {
+        text = value
+    } else if !input.isEmpty, let data = try? JSONSerialization.data(withJSONObject: input, options: [.sortedKeys, .prettyPrinted, .withoutEscapingSlashes]) {
+        text = String(decoding: data, as: UTF8.self)
+    } else {
+        return ""
+    }
+    let limit = 20_000
+    return text.count > limit ? String(text.prefix(limit)) + "\n… and \(text.count - limit) more characters" : text
 }
 
 // MARK: - Hook server
@@ -409,6 +416,12 @@ final class HookServer {
         return (headers, Data(body))
     }
 
+    /// Compares every byte, so timing can't show how much of a guess was right.
+    private func tokenMatches(_ given: String?) -> Bool {
+        let a = Array((given ?? "").utf8), b = Array(token.utf8)
+        return a.count == b.count && zip(a, b).reduce(0) { $0 | ($1.0 ^ $1.1) } == 0
+    }
+
     private func route(_ c: NWConnection, headers: [String: String], body: Data) {
         var sent = false
         let respond: (Int, Data) -> Void = { status, data in
@@ -417,7 +430,7 @@ final class HookServer {
             let head = "HTTP/1.1 \(status) \(status == 200 ? "OK" : "Forbidden")\r\nContent-Type: application/json\r\nContent-Length: \(data.count)\r\nConnection: close\r\n\r\n"
             c.send(content: Data(head.utf8) + data, completion: .contentProcessed { _ in c.cancel() })
         }
-        guard headers["x-float-token"] == token,
+        guard tokenMatches(headers["x-float-token"]),
               let json = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
             respond(403, Data())
             return
