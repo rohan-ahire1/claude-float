@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var server: HookServer!
     var dot: NSPanel!
     var dotView: DotView!
+    let dotSize: CGFloat = 48
     var panel: KeyPanel!
     var contentHeight: CGFloat = 120
     var lastHide = Date.distantPast
@@ -48,6 +49,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { [weak self] note in
             let app = note.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
             self?.store.appActivated(app?.bundleIdentifier)
+        }
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.dot.setFrameOrigin(self.dotOrigin())
+            if self.panel.isVisible { self.placePanel() }
         }
         Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in self?.store.prune() }
         refreshDot()
@@ -106,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func makeDot() {
-        let size: CGFloat = 48
+        let size = dotSize
         dot = NSPanel(contentRect: NSRect(x: 0, y: 0, width: size, height: size),
                       styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         floating(dot)
@@ -120,17 +128,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         dotView.onRightClick = { [weak self] event in self?.showMenu(event) }
         dot.contentView = dotView
+        dot.setFrameOrigin(dotOrigin())
+        dot.orderFrontRegardless()
+    }
 
-        let vf = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
-        var origin = NSPoint(x: vf.maxX - size - 16, y: vf.maxY - size - 16)
+    /// Where you left the dot, or the top right corner if that spot is on a screen that's gone.
+    private func dotOrigin() -> NSPoint {
+        let size = dotSize
         if let saved = UserDefaults.standard.string(forKey: "dotOrigin") {
             let p = NSPointFromString(saved)
             if NSScreen.screens.contains(where: { $0.frame.insetBy(dx: 10, dy: 10).contains(NSPoint(x: p.x + size / 2, y: p.y + size / 2)) }) {
-                origin = p
+                return p
             }
         }
-        dot.setFrameOrigin(origin)
-        dot.orderFrontRegardless()
+        let vf = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        return NSPoint(x: vf.maxX - size - 16, y: vf.maxY - size - 16)
     }
 
     private func makePanel() {
@@ -205,7 +217,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func placePanel() {
         let d = dot.frame
-        let vf = dot.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
+        guard let vf = (dot.screen ?? NSScreen.main)?.visibleFrame else { return }
         let w: CGFloat = nav.route == .home ? 380 : 460
         let wanted = nav.route == .home ? max(contentHeight, 80) : 640
         let h = min(wanted, min(nav.route == .home ? 600 : 680, vf.height - 40))

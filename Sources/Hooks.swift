@@ -320,6 +320,8 @@ final class Store: ObservableObject {
     private func end(_ sid: String) {
         for (id, w) in waiters where w.sessionID == sid { handBack(id) }
         sessions[sid] = nil
+        queued[sid] = nil
+        bridged[sid] = nil
     }
 
     /// Drops sessions that went quiet, e.g. a terminal that was closed without ending Claude.
@@ -329,6 +331,8 @@ final class Store: ObservableObject {
             let idle = now.timeIntervalSince(s.updated)
             if s.state == .done && idle > 3 * 3600 { sessions[s.id] = nil }
             if s.state == .working && idle > 3600 { sessions[s.id]?.state = .done }
+            // Answered or stopped in Claude with no hook to say so; don't leave the dot orange forever.
+            if s.state == .needsYou && s.pending.isEmpty && idle > 3600 { sessions[s.id]?.state = .done }
         }
     }
 }

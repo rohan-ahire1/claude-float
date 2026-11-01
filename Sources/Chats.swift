@@ -69,6 +69,7 @@ final class TranscriptIndex {
                 let size = UInt64(values.fileSize ?? 0)
                 if size < state.offset {
                     let fresh = FileState(state.meta.sessionID)
+                    fresh.meta.modified = modified
                     files[path] = fresh
                     read(fresh, path)
                 } else if size > state.offset {
@@ -318,7 +319,7 @@ final class FloatChat {
         guard alive else { return }
         alive = false
         busy = false
-        if let sessionID { store?.dropAll(sessionID) }
+        store?.dropAll(sessionID ?? key)
         onChange()
     }
 }
