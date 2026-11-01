@@ -1,0 +1,4 @@
+{
+  "description": "Checks in with Claude Float and submits the replies you type there",
+  "modules": ["./register.js"]
+}

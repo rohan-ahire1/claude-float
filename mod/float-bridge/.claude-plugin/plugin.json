@@ -1,0 +1,6 @@
+{
+  "name": "float-bridge",
+  "version": "0.1.0",
+  "description": "Lets Claude Float send your replies straight into this chat, even when it's idle",
+  "author": { "name": "Rohan" }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "float-local",
+  "owner": { "name": "Rohan" },
+  "plugins": [
+    { "name": "float-bridge", "source": "./float-bridge", "description": "Lets Claude Float send your replies straight into this chat" }
+  ]
+}
