@@ -53,9 +53,19 @@ def load(path):
             settings = json.load(f)
     except ValueError as error:
         fail("%s isn't valid JSON (%s). Fix it and run this again. Nothing was changed." % (path, error))
-    if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
+    if not well_formed(settings):
         fail("%s doesn't look like Claude Code settings. Nothing was changed." % path)
     return settings
+
+
+def well_formed(settings):
+    if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
+        return False
+    return all(
+        isinstance(groups, list)
+        and all(isinstance(g, dict) and isinstance(g.get("hooks", []), list) for g in groups)
+        for groups in settings.get("hooks", {}).values()
+    )
 
 
 def save(path, settings):
