@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swiftc --version
+      - name: Build (Apple silicon)
+        run: |
+          mkdir -p build
+          swiftc -swift-version 5 -O -target arm64-apple-macos14.0 -o build/ClaudeFloat-arm64 Sources/*.swift
+      - name: Build (Intel)
+        run: swiftc -swift-version 5 -O -target x86_64-apple-macos14.0 -o build/ClaudeFloat-x86_64 Sources/*.swift
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash -n
+        run: |
+          for f in install.sh uninstall.sh hook.sh; do
+            bash -n "$f"
+          done
+      - name: shellcheck
+        run: shellcheck install.sh uninstall.sh hook.sh
+      - name: Compile settings.py
+        run: python3 -m py_compile scripts/settings.py
+      - name: Check JSON
+        run: |
+          for f in mod/.claude-plugin/marketplace.json mod/float-bridge/.claude-plugin/plugin.json mod/float-bridge/hooks/hooks.json; do
+            python3 -m json.tool "$f" > /dev/null
+          done
+      - name: Check register.js
+        run: |
+          tmp="$(mktemp -d)"
+          cp mod/float-bridge/hooks/register.js "$tmp/register.mjs"
+          node --check "$tmp/register.mjs"

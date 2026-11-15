@@ -38,6 +38,8 @@ The installer does four things:
 - Adds Float's hooks to `~/.claude/settings.json`, after saving a copy as `settings.json.before-float`
 - Installs a small Claude Code mod, `float-bridge`, from a local marketplace
 
+CI builds every PR for Apple silicon and Intel.
+
 Run `./install.sh` again to update. To start Float when you log in, add it under System Settings > General > Login Items.
 
 ## Using it
